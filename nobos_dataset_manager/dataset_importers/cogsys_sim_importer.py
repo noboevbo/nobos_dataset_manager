@@ -59,16 +59,19 @@ class ImageFolderImporter(object):
         self.img_dir_to_skeleton_tool = PipelineEhpi(use_pose_tracking=pose_tracking, use_fast_mode=True, image_size=image_size)
         self.fps = fps
         self.image_size = image_size
-        self.dataset_part = dataset_part
         self.dataset, created = Dataset.get_or_create(name=dataset_name)
-        self.dataset_split, create = DatasetSplit.get_or_create(name="{}-1".format(dataset_name))
+        self.dataset_split, create = DatasetSplit.get_or_create(name="{}-1".format(dataset_name), dataset_part=dataset_part.value)
         self.direct_action_mapping = direct_action_mapping
         if created:
             print("Created new dataset DB entry: '{0}'".format(self.dataset.name))
 
         self.img_blob_path = os.path.join('data', 'video_gt', dataset_name, 'imgs')
+        self.segmentation_blob_path = os.path.join('data', 'video_gt', dataset_name, 'segs')
+        self.depth_blob_path = os.path.join('data', 'video_gt', dataset_name, 'depths')
         self.vid_blob_path = os.path.join('data', 'video_gt', dataset_name, 'vids')
         self.imgs_path = get_create_path(os.path.join(cfg.blob_storage_path, self.img_blob_path))
+        self.segmentations_path = get_create_path(os.path.join(cfg.blob_storage_path, self.segmentation_blob_path))
+        self.depths_path = get_create_path(os.path.join(cfg.blob_storage_path, self.depth_blob_path))
         self.vids_path = get_create_path(os.path.join(cfg.blob_storage_path, self.vid_blob_path))
 
         self.datasource_gt = Datasource.GROUND_TRUTH
@@ -182,16 +185,25 @@ class ImageFolderImporter(object):
                 bb = get_bb_db_from_skeleton(human.skeleton, human_db)
                 bb.save()
 
-    def __import_video_imgs_data(self, cam_dir_path: str, cam_name: str, move_data: bool = False):
+    def __transfer_files(self, src_dir: str, dst_dir: str, move_data: bool):
+        transfer_files(src=src_dir,
+                       dst=dst_dir,
+                       move_src_data=move_data)
+        batch_rename_files_to_index(dst_dir)
+
+    def __import_video_imgs_data(self, cam_dir_path: str, cam_name: str, seg_src, depth_src, has_segmentation, has_depth, move_data: bool = False):
         img_dir = os.path.join(self.imgs_path, cam_name)
+
         if os.path.exists(img_dir):
             logger.info("Video images path already exists, skip importing video images.")
         else:
             logger.info('Importing video source data...')
-            transfer_files(src=cam_dir_path,
-                           dst=img_dir,
-                           move_src_data=move_data)
-            batch_rename_files_to_index(img_dir)
+            self.__transfer_files(cam_dir_path, img_dir, move_data)
+            if has_segmentation:
+                self.__transfer_files(seg_src, os.path.join(self.segmentations_path, cam_name), move_data)
+            if has_depth:
+                self.__transfer_files(depth_src, os.path.join(self.depths_path, cam_name), move_data)
+        # TODO: Segmentation and Depth data needs to be copied as well
 
     def import_data(self, import_src_files: bool = True):
         for cam_dir_path in get_immediate_subdirectories(self.sim_record_path):
@@ -201,8 +213,12 @@ class ImageFolderImporter(object):
             self.__import_data_for_cam(cam_dir_path, cam_name, import_src_files)
 
     def __import_data_for_cam(self, cam_dir_path: str, cam_name: str, import_src_files):
+        seg_path = os.path.join(cam_dir_path.replace(cam_name, "annotations/seg_{}".format(cam_name)))
+        depth_path = os.path.join(cam_dir_path.replace(cam_name, "annotations/depth_{}".format(cam_name)))
+        has_segmentation = os.path.exists(seg_path)
+        has_depth = os.path.exists(depth_path)
         if import_src_files:
-            self.__import_video_imgs_data(cam_dir_path, cam_name)
+            self.__import_video_imgs_data(cam_dir_path, cam_name, seg_path, depth_path, has_segmentation, has_depth)
         gt_file_path = os.path.join(self.sim_record_path, 'annotations', 'pose-view_{}.txt'.format(cam_name))
         if not os.path.exists(gt_file_path):
             raise IOError("GT file not found: '{0}'".format(gt_file_path))
@@ -213,10 +229,13 @@ class ImageFolderImporter(object):
                 video_gt = VideoGroundTruth()
                 video_gt.dataset = self.dataset
                 video_gt.vid_img_path = os.path.join(self.imgs_path, cam_name)
+                if has_segmentation:
+                    video_gt.vid_segmentation_path = seg_path
+                if has_depth:
+                    video_gt.vid_depth_path = depth_path
                 video_gt.vid_name = cam_name
                 video_gt.num_frames = gt_df['frame_num'].max() + 1
                 video_gt.created_date = creation_date
-                video_gt.dataset_part = self.dataset_part.value
                 video_gt.fps = self.fps
                 video_gt.frame_width = self.image_size.width
                 video_gt.frame_height = self.image_size.height
@@ -232,16 +251,15 @@ class ImageFolderImporter(object):
 
 if __name__ == "__main__":
     configurator.setup()
-    stuff_to_import = ['2019_03_06-idle', '2019_03_06-jump', '2019_03_06-sit', '2019_03_06-walk', '2019_03_06-wave']
+    stuff_to_import = ['test_reco']
     image_size = ImageSize(1280, 720)
-    fps = 60
+    fps = 24
     pose_tracking = True
     direct_action_mapping = {
-        "104_37-RunThrough": Action.WALK,
-        "104_17-SpasticStop": Action.WALK
+        "realsidewalk01_mcp": Action.WALK,
     }
     for stuff in stuff_to_import:
-        importer = ImageFolderImporter("/media/disks/beta/records/sim/{}".format(stuff),
+        importer = ImageFolderImporter("/media/disks/gamma/records/simulation/{}".format(stuff),
                                        "SIM_{}".format(stuff), image_size, fps, pose_tracking, direct_action_mapping,
                                        dataset_part=DatasetPart.TRAIN)
         importer.import_data()

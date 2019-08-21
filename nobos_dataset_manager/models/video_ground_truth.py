@@ -9,6 +9,8 @@ class VideoGroundTruth(BaseModel):
 
     vid_path = CharField(unique=True, null=True)
     vid_img_path = CharField(unique=True, null=True)
+    vid_segmentation_path = CharField(unique=True, null=True)
+    vid_depth_path = CharField(unique=True, null=True)
     vid_name = CharField()
     fps = IntegerField()
     num_frames = IntegerField()
