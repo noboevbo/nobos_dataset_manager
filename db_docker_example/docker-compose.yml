@@ -1,0 +1,23 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+  gt_db:
+    image: postgres
+    restart: always
+    volumes:
+      - gt_db:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:1111:5432
+    environment:
+      POSTGRES_USER: dennis
+    env_file: postgres.env
+
+  # adminer:
+  #   image: adminer
+  #   restart: always
+  #   ports:
+  #     - 127.0.0.1:8082:8080
+
+volumes:
+  gt_db:
