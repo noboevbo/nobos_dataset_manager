@@ -35,7 +35,7 @@ class TempAction(object):
         self.action_name: str = action_name
         self.action_db: HumanAction = action_db
 
-class ImageFolderImporter(object):
+class CogsysSimImporter(object):
     def __init__(self, sim_record_path: str, dataset_name: str, image_size: ImageSize, fps: int,
                  pose_tracking: bool, direct_action_mapping: Dict[str, Action], dataset_part: DatasetPart):
         """
@@ -251,7 +251,7 @@ class ImageFolderImporter(object):
 
 if __name__ == "__main__":
     configurator.setup()
-    stuff_to_import = ['test_reco']
+    stuff_to_import = ['test_reco2']
     image_size = ImageSize(1280, 720)
     fps = 24
     pose_tracking = True
@@ -259,8 +259,8 @@ if __name__ == "__main__":
         "realsidewalk01_mcp": Action.WALK,
     }
     for stuff in stuff_to_import:
-        importer = ImageFolderImporter("/media/disks/gamma/records/simulation/{}".format(stuff),
+        importer = CogsysSimImporter("/media/disks/gamma/records/simulation/{}".format(stuff),
                                        "SIM_{}".format(stuff), image_size, fps, pose_tracking, direct_action_mapping,
-                                       dataset_part=DatasetPart.TRAIN)
+                                     dataset_part=DatasetPart.TRAIN)
         importer.import_data()
     # TODO: Hangs on Cam change?
