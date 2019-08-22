@@ -5,6 +5,8 @@ CREATE VIEW view_actiongroundtruth AS
          videogroundtruth.id as video_gt_id,
          videogroundtruth.vid_path,
          videogroundtruth.vid_img_path,
+         videogroundtruth.vid_segmentation_path ,
+         videogroundtruth.vid_depth_path,
          videogroundtruth.vid_name,
          videogroundtruth.fps,
          datasetsplit.dataset_part,

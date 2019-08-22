@@ -10,6 +10,8 @@ class ViewActionGroundTruth(BaseViewModel):
     video_gt_id = IntegerField()
     vid_path = CharField(unique=True, null=True)
     vid_img_path = CharField(unique=True, null=True)
+    vid_segmentation_path = CharField(unique=True, null=True)
+    vid_depth_path = CharField(unique=True, null=True)
     vid_name = CharField()
     fps = IntegerField()
     dataset_part = IntegerField()
