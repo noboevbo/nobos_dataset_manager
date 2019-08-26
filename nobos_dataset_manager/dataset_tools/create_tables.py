@@ -15,12 +15,12 @@ from nobos_dataset_manager.models.video_ground_truth import VideoGroundTruth
 if __name__ == "__main__":
     db = cfg.db_conn
     db.connect()
-    db.drop_tables([BoundingBox, Dataset, Human, HumanAction, FrameGroundTruth, SkeletonJoints, VideoGroundTruth])
-    db.create_tables([BoundingBox, Dataset, Human, HumanAction, FrameGroundTruth, SkeletonJoints, VideoGroundTruth])
+    db.drop_tables([BoundingBox, DatasetSplit, DatasetSplitVideoGroundTruth, Dataset, Human, HumanAction, FrameGroundTruth, SkeletonJoints, VideoGroundTruth])
+    db.create_tables([BoundingBox, DatasetSplit, DatasetSplitVideoGroundTruth,  Dataset, Human, HumanAction, FrameGroundTruth, SkeletonJoints, VideoGroundTruth])
 
-    db.create_tables([
-        DatasetSplit,
-        DatasetSplitVideoGroundTruth])
+    # db.create_tables([
+    #     DatasetSplit,
+    #     DatasetSplitVideoGroundTruth])
 
     with db.atomic() as transaction:  # Opens new transaction.
         try:

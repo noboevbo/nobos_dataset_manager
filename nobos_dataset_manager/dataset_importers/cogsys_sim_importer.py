@@ -2,6 +2,8 @@ import os
 import pickle
 from datetime import datetime
 from typing import Dict
+from nobos_dataset_manager import configurator
+configurator.setup()
 
 import pandas as pd
 from nobos_commons.data_structures.constants.dataset_part import DatasetPart
@@ -14,9 +16,9 @@ from nobos_commons.utils.action_helper import get_action_from_string
 from nobos_commons.utils.file_helper import get_immediate_subdirectories, get_last_dir_name, \
     get_create_path, batch_rename_files_to_index
 from nobos_commons.utils.human_helper import get_human_with_highest_score
-from nobos_dataset_api.rtsim.rtsim_pose import read_annotation_2d, get_skeleton_from_row
+from nobos_dataset_api.rtsim.rtsim_pose import get_skeleton_3D_from_row, read_annotation_3d
 
-from nobos_dataset_manager import configurator
+
 from nobos_dataset_manager.config import cfg
 from nobos_dataset_manager.dataset_tools.pipeline_ehpi import PipelineEhpi
 from nobos_dataset_manager.models.dataset import Dataset
@@ -26,7 +28,9 @@ from nobos_dataset_manager.models.frame_ground_truth import FrameGroundTruth
 from nobos_dataset_manager.models.human import Human
 from nobos_dataset_manager.models.human_action import HumanAction
 from nobos_dataset_manager.models.video_ground_truth import VideoGroundTruth
-from nobos_dataset_manager.utils import get_skeleton_db_from_skeleton, get_bb_db_from_skeleton
+from nobos_dataset_manager.utils import get_skeleton_db_from_skeleton, get_bb_db_from_skeleton, \
+    get_bb_3D_db_from_skeleton
+
 
 # TODO: Test
 
@@ -112,13 +116,13 @@ class CogsysSimImporter(object):
             human_db.datasource = self.datasource_gt.value
             human_db.save()
 
-            skeleton = get_skeleton_from_row(row)
+            skeleton = get_skeleton_3D_from_row(row)
             # Save Skeleton
             skeleton_joints = get_skeleton_db_from_skeleton(skeleton, human_db)
             skeleton_joints.save()
 
             # Save BB
-            bb = get_bb_db_from_skeleton(skeleton, human_db)
+            bb = get_bb_3D_db_from_skeleton(skeleton, human_db)
             bb.save()
 
     def __save_frame_contents_from_pose_rec(self, cam_dir_path: str, gt_df: pd.DataFrame, video_gt: VideoGroundTruth):
@@ -219,10 +223,10 @@ class CogsysSimImporter(object):
         has_depth = os.path.exists(depth_path)
         if import_src_files:
             self.__import_video_imgs_data(cam_dir_path, cam_name, seg_path, depth_path, has_segmentation, has_depth)
-        gt_file_path = os.path.join(self.sim_record_path, 'annotations', 'pose-view_{}.txt'.format(cam_name))
+        gt_file_path = os.path.join(self.sim_record_path, 'annotations', 'pose3d-view_{}.txt'.format(cam_name))
         if not os.path.exists(gt_file_path):
             raise IOError("GT file not found: '{0}'".format(gt_file_path))
-        gt_df = read_annotation_2d(gt_file_path)
+        gt_df = read_annotation_3d(gt_file_path)
         creation_date = datetime.fromtimestamp(os.path.getmtime(self.sim_record_path))
         with cfg.db_conn.atomic() as transaction:  # Opens new transaction.
             try:
@@ -242,21 +246,22 @@ class CogsysSimImporter(object):
                 video_gt.save()
                 self.dataset_split.video_ground_truths.add(video_gt)
 
-                self.__save_frame_contents_from_pose_rec(cam_dir_path, gt_df, video_gt)
+                # self.__save_frame_contents_from_pose_rec(cam_dir_path, gt_df, video_gt)
                 self.__save_frame_contents_from_gt(gt_df, video_gt)
             except Exception as err:
                 print("Error occured, rollback: '{}'".format(err))
                 transaction.rollback()
+                raise err
 
 
 if __name__ == "__main__":
-    configurator.setup()
-    stuff_to_import = ['test_reco2']
+
+    stuff_to_import = ['2019-08-22_ROM01']
     image_size = ImageSize(1280, 720)
-    fps = 24
+    fps = 60
     pose_tracking = True
     direct_action_mapping = {
-        "realsidewalk01_mcp": Action.WALK,
+        "ROM_mcp": Action.WALK,
     }
     for stuff in stuff_to_import:
         importer = CogsysSimImporter("/media/disks/gamma/records/simulation/{}".format(stuff),
