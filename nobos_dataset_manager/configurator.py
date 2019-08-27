@@ -14,9 +14,9 @@ def setup():
     torch.backends.cudnn.deterministic = False
     torch.backends.cudnn.enabled = True
 
-    api_cfg.reload_all = True
-    ehpi_cfg.cache_config.reload_all = True
-    a = api_cfg
+    # api_cfg.reload_all = True
+    # ehpi_cfg.cache_config.reload_all = True
+    # a = api_cfg
 
     config.cache_config.cache_dir = "/media/disks/beta/app_data/cache/ofp_ui"
     config.yolo_v3_config.model_state_file = "/media/disks/beta/app_data/ehpi_action_recognition/data/models/yolov3.weights"

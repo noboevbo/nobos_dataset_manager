@@ -246,7 +246,7 @@ class CogsysSimImporter(object):
                 video_gt.save()
                 self.dataset_split.video_ground_truths.add(video_gt)
 
-                # self.__save_frame_contents_from_pose_rec(cam_dir_path, gt_df, video_gt)
+                self.__save_frame_contents_from_pose_rec(cam_dir_path, gt_df, video_gt)
                 self.__save_frame_contents_from_gt(gt_df, video_gt)
             except Exception as err:
                 print("Error occured, rollback: '{}'".format(err))
